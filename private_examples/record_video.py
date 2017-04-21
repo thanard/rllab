@@ -20,18 +20,17 @@ with tf.Session() as sess:
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=str,
                         help='path to the snapshot file', default='swimmer_normalized_com_cost')
-    parser.add_argument('--max_path_length', type=int, default=1000,
+    parser.add_argument('--max_path_length', type=int, default=100,
                         help='Max length of rollout')
     args = parser.parse_args()
 
     np.random.seed(0)
     random.seed(0)
-    filename = args.file
+    filepath = args.file
     pkl_file = osp.join(config.PROJECT_PATH,
-                        "data/local/experiment/"+filename+"/params.pkl"
+                        filepath,"params.pkl"
                         )
-    output_path = osp.join(config.PROJECT_PATH, "data/video/"+filename)
-    console.mkdir_p(output_path)
+    output_path = osp.join(config.PROJECT_PATH, filepath, "video.mp4")
 
     # import pdb; pdb.set_trace()
     data = joblib.load(pkl_file)
@@ -42,18 +41,18 @@ with tf.Session() as sess:
     # env = SwimmerEnv()
 
 
-    encoder = ImageEncoder(output_path=osp.join(output_path, filename+'.mp4'),
+    encoder = ImageEncoder(output_path=output_path,
                            frame_shape=frame_size + (3,),
                            frames_per_sec=60)
 
-    print("Generating "+filename+".mp4")
+    print("Generating %s"%output_path)
     obs = env.reset()
     image = env.render(mode='rgb_array')
     policy.reset()
     for t in range(args.max_path_length):
         compressed_image = to_img(image, frame_size=frame_size)
         # cv2.imshow('frame{}'.format(t), compressed_image)
-        cv2.waitKey(10)
+        # cv2.waitKey(10)
         encoder.capture_frame(compressed_image)
         action, _ = policy.get_action(obs)
         next_obs, reward, done, info = env.step(action)

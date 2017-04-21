@@ -1,5 +1,5 @@
 use_tf = True
-use_init = True
+use_init = False
 if use_tf:
     import tensorflow as tf
     from sandbox.rocky.tf.algos.trpo import TRPO
@@ -29,9 +29,9 @@ def get_session(interactive=False, mem_frac=0.1):
         intra_op_parallelism_threads=1,
         gpu_options=gpu_options)
     if interactive:
-    	session = tf.InteractiveSession(config=tf_config)
+        session = tf.InteractiveSession(config=tf_config)
     else:
-	    session = tf.Session(config=tf_config)
+        session = tf.Session(config=tf_config)
     print("AVAILABLE GPUS: ", get_available_gpus())
     return session
 
@@ -85,9 +85,9 @@ else:
         policy=policy,
         baseline=baseline,
         batch_size=4000,
-        max_path_length=100,
-        n_itr=10,
-        discount=1.00,
+        max_path_length=300,
+        n_itr=100,
+        discount=0.99,
         step_size=0.01,
     )
 

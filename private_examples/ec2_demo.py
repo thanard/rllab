@@ -1,6 +1,6 @@
 import sys
 from rllab.misc.instrument import run_experiment_lite
-from sandbox.thanard.bootstrapping.main  import main
+from sandbox.thanard.bootstrapping.bptt  import main
 import rllab.misc.logger as logger
 import os
 from sandbox.rocky.s3.resource_manager import resource_manager

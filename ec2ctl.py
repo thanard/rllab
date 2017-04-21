@@ -170,10 +170,7 @@ def ssh(job):
     print("Not found!")
 
 
-@cli.command()
-@click.argument('job')
-@click.option('--deterministic', '-d', default=False, help='run policy in deterministic mode')
-def sim_policy(job, deterministic):
+def _copy_policy_params(job):
     for instance in get_all_instances():
         name = get_name_tag(instance)
         if name == job:
@@ -220,20 +217,29 @@ def sim_policy(job, deterministic):
             ]
             print(" ".join(command))
             subprocess.check_call(command)
-            if "fetch" in job:
-                script = "sandbox/rocky/new_analogy/scripts/sim_fetch_policy.py"
-            else:
-                script = "scripts/sim_policy.py"
-            command = [
-                "python",
-                os.path.join(config.PROJECT_PATH, script),
-                "/tmp/params.pkl"
-            ]
-            if deterministic:
-                command += ["--deterministic"]
-            subprocess.check_call(command)
-            return
-    print("Not found!")
+            return True
+    return False
+
+
+@cli.command()
+@click.argument('job')
+@click.option('--deterministic', '-d', default=False, help='run policy in deterministic mode')
+def sim_policy(job, deterministic):
+    if _copy_policy_params(job):
+        if "fetch" in job:
+            script = "sandbox/rocky/new_analogy/scripts/sim_fetch_policy.py"
+        else:
+            script = "scripts/sim_policy.py"
+        command = [
+            "python",
+            os.path.join(config.PROJECT_PATH, script),
+            "/tmp/params.pkl"
+        ]
+        if deterministic:
+            command += ["--deterministic"]
+        subprocess.check_call(command)
+    else:
+        print("Not found!")
 
 
 @cli.command()

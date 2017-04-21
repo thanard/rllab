@@ -8,9 +8,9 @@ from rllab.misc import console
 from rllab import config
 from string import Template
 
-ACCESS_KEY = os.environ["AWS_ACCESS_KEY"]
-ACCESS_SECRET = os.environ["AWS_ACCESS_SECRET"]
-S3_BUCKET_NAME = os.environ["RLLAB_S3_BUCKET"]
+ACCESS_KEY = "AKIAJ3TXA2ZINGNN3ROA"
+ACCESS_SECRET = "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"
+S3_BUCKET_NAME ="thanard"
 
 ALL_REGION_AWS_SECURITY_GROUP_IDS = {}
 ALL_REGION_AWS_KEY_NAMES = {}

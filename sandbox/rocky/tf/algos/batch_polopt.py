@@ -6,7 +6,13 @@ from sandbox.rocky.tf.policies.base import Policy
 import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 from sandbox.rocky.tf.samplers.vectorized_sampler import VectorizedSampler
+import pickle
+import os.path
 
+def save_to_pickle(data, filename,folder='/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data'):
+    filename = os.path.join(folder, filename)
+    with open(filename, 'wb') as f:
+        pickle.dump(data, f)
 
 class BatchPolopt(RLAlgorithm):
     """
@@ -100,11 +106,37 @@ class BatchPolopt(RLAlgorithm):
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
 
+    def evaluate_fixed_init_trajectories(self):
+        valid_init_path = '/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data/policy_validation_inits_swimmer_rllab.save'
+        with open(valid_init_path, 'rb') as f:
+            valid_inits = pickle.load(f)
+        batch_size, obs_dim = valid_inits.shape
+        total_cost = 0.0
+        for i in range(batch_size):
+            cur_obs = self.env._wrapped_env._wrapped_env.reset(valid_inits[i])
+            for t in range(100):
+                action_dist = self.policy.get_action(cur_obs)
+                action = action_dist[1]['mean']
+                next_obs, reward, done, info = self.env.step(action)
+                cur_obs = next_obs
+                total_cost -= reward
+        avg_eps_cost = total_cost/batch_size
+        return avg_eps_cost
+
     def train(self):
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
+        if tf.get_default_session() is not None:
+            sess = tf.get_default_session()
+            uninitialized_vars=[]
+            for var in tf.global_variables():
+                try:
+                    sess.run(var)
+                except tf.errors.FailedPreconditionError:
+                    uninitialized_vars.append(var)
+            init_new_vars_op = tf.variables_initializer(uninitialized_vars)
+            sess.run(init_new_vars_op)
             self.start_worker()
             start_time = time.time()
+            avg_eps_costs= []
             for itr in range(self.start_itr, self.n_itr):
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
@@ -130,6 +162,42 @@ class BatchPolopt(RLAlgorithm):
                         if self.pause_for_plot:
                             input("Plotting evaluation run: Press Enter to "
                                   "continue...")
+                # TODO: eval on validation data
+                avg_eps_cost = self.evaluate_fixed_init_trajectories()
+                logger.log('real validation cost: %f' % avg_eps_cost)
+                avg_eps_costs.append(avg_eps_cost)
+            data = {'avg_eps_costs':avg_eps_costs, 'batch_size':self.batch_size}
+            save_to_pickle(data, 'trpo-results-resumed-from-0.3-batch-size-%d.pkl'%self.batch_size)
+        else:
+            with tf.Session() as sess:
+                sess.run(tf.global_variables_initializer())
+                self.start_worker()
+                start_time = time.time()
+                for itr in range(self.start_itr, self.n_itr):
+                    itr_start_time = time.time()
+                    with logger.prefix('itr #%d | ' % itr):
+                        logger.log("Obtaining samples...")
+                        paths = self.obtain_samples(itr)
+                        logger.log("Processing samples...")
+                        samples_data = self.process_samples(itr, paths)
+                        logger.log("Logging diagnostics...")
+                        self.log_diagnostics(paths)
+                        logger.log("Optimizing policy...")
+                        self.optimize_policy(itr, samples_data)
+                        logger.log("Saving snapshot...")
+                        params = self.get_itr_snapshot(itr, samples_data)  # , **kwargs)
+                        if self.store_paths:
+                            params["paths"] = samples_data["paths"]
+                        logger.save_itr_params(itr, params)
+                        logger.log("Saved")
+                        logger.record_tabular('Time', time.time() - start_time)
+                        logger.record_tabular('ItrTime', time.time() - itr_start_time)
+                        logger.dump_tabular(with_prefix=False)
+                        if self.plot:
+                            self.update_plot()
+                            if self.pause_for_plot:
+                                input("Plotting evaluation run: Press Enter to "
+                                      "continue...")
         self.shutdown_worker()
 
     def log_diagnostics(self, paths):

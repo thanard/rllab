@@ -98,6 +98,8 @@ class NPO(BatchPolopt):
             "observations", "actions", "advantages"
         ))
         agent_infos = samples_data["agent_infos"]
+        print(self.policy.state_info_keys)
+        print(self.policy.distribution.dist_info_keys)
         state_info_list = [agent_infos[k] for k in self.policy.state_info_keys]
         dist_info_list = [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
         all_input_values += tuple(state_info_list) + tuple(dist_info_list)
@@ -108,6 +110,7 @@ class NPO(BatchPolopt):
         logger.log("Computing KL before")
         mean_kl_before = self.optimizer.constraint_val(all_input_values)
         logger.log("Optimizing")
+        print([input_value.shape for input_value in all_input_values])
         self.optimizer.optimize(all_input_values)
         logger.log("Computing KL after")
         mean_kl = self.optimizer.constraint_val(all_input_values)

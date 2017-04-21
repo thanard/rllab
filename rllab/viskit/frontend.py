@@ -520,6 +520,7 @@ def index():
         group_key = distinct_params[0][0]
     else:
         group_key = None
+    print("\n\n$$$$$$$$$$ %s\n\n"%group_key)
     plot_div = get_plot_instruction(
         plot_key=plot_key, split_key=None, group_key=group_key)
     return flask.render_template(
@@ -537,11 +538,13 @@ def reload_data():
     global exps_data
     global plottable_keys
     global distinct_params
+    args.disable_variant = False
     exps_data = core.load_exps_data(args.data_paths,args.disable_variant)
+    # print(exps_data)
     plottable_keys = sorted(list(
         set(flatten(list(exp.progress.keys()) for exp in exps_data))))
     distinct_params = sorted(core.extract_distinct_params(exps_data))
-
+    print("\n\n distinct_params:{} \n\n".format(distinct_params))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

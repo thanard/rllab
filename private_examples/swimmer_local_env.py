@@ -62,3 +62,34 @@ class SwimmerEnv(MujocoEnv, Serializable):
             logger.record_tabular('MaxForwardProgress', np.nan)
             logger.record_tabular('MinForwardProgress', np.nan)
             logger.record_tabular('StdForwardProgress', np.nan)
+
+import tensorflow as tf
+class SimpleDynamics:
+    def __init__(self):
+        self.current_obs = None
+
+    def reset(self):
+        self.current_obs = np.zeros(2)
+
+    def get_current_obs(self):
+        return self.current_obs
+
+    def step(self, action):
+        next_obs = self.current_obs + action
+        reward = 1-np.exp(np.square(1-self.current_obs[0]) + np.square(1-self.current_obs[1]))
+        return Step(next_obs, reward, False)
+class SwimmerNNEnv(SwimmerEnv):
+    def __init__(self,
+                 dynamics_in,
+                 dynamics_out,
+                 *args,
+                 **kwargs):
+        super(SwimmerNNEnv, self).__init__(ctrl_cost_coeff=1e-2,
+                                           *args,
+                                           **kwargs)
+    @overrides
+    def step(self, action):
+        sess = tf.get_default_session()
+        sess.run(dynamics_out, feed_dict={
+            dynamics_in:np.concatenate([self.get_current_obs()])
+        })
