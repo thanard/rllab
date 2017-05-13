@@ -251,17 +251,17 @@ class ConjugateGradientOptimizer(Serializable):
         else:
             subsample_inputs = inputs
 
-        logger.log("Start CG optimization: #parameters: %d, #inputs: %d, #subsample_inputs: %d"%(len(prev_param),len(inputs[0]), len(subsample_inputs[0])))
+        # logger.log("Start CG optimization: #parameters: %d, #inputs: %d, #subsample_inputs: %d"%(len(prev_param),len(inputs[0]), len(subsample_inputs[0])))
 
-        logger.log("computing loss before")
+        # logger.log("computing loss before")
         loss_before = sliced_fun(self._opt_fun["f_loss"], self._num_slices)(inputs, extra_inputs)
-        logger.log("performing update")
+        # logger.log("performing update")
 
-        logger.log("computing gradient")
+        # logger.log("computing gradient")
         flat_g = sliced_fun(self._opt_fun["f_grad"], self._num_slices)(inputs, extra_inputs)
-        logger.log("gradient computed")
+        # logger.log("gradient computed")
 
-        logger.log("computing descent direction")
+        # logger.log("computing descent direction")
         Hx = self._hvp_approach.build_eval(subsample_inputs + extra_inputs)
 
         descent_direction = krylov.cg(Hx, flat_g, cg_iters=self._cg_iters)
@@ -273,7 +273,7 @@ class ConjugateGradientOptimizer(Serializable):
             initial_step_size = 1.
         flat_descent_step = initial_step_size * descent_direction
 
-        logger.log("descent direction computed")
+        # logger.log("descent direction computed")
 
         n_iter = 0
         for n_iter, ratio in enumerate(self._backtrack_ratio ** np.arange(self._max_backtracks)):
@@ -299,6 +299,6 @@ class ConjugateGradientOptimizer(Serializable):
             if constraint_val >= self._max_constraint_val:
                 logger.log("Violated because constraint %s is violated" % self._constraint_name)
             self._target.set_param_values(prev_param, trainable=True)
-        logger.log("backtrack iters: %d" % n_iter)
-        logger.log("computing loss after")
-        logger.log("optimization finished")
+        # logger.log("backtrack iters: %d" % n_iter)
+        # logger.log("computing loss after")
+        # logger.log("optimization finished")

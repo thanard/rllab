@@ -1,6 +1,6 @@
 use_tf = True
 use_init = False
-use_env = 'com'
+use_env = 'rllab'
 if use_tf:
     import tensorflow as tf
     from sandbox.rocky.tf.algos.trpo import TRPO
@@ -14,12 +14,12 @@ from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
 if use_env == 'rllab':
-    from rllab.envs.mujoco.swimmer_env import SwimmerEnv
-elif use_env == 'augmented':
-    from private_examples.swimmer_local_env import SwimmerEnv
-else:
-    assert use_env == 'com'
-    from private_examples.com_swimmer_env import SwimmerEnv
+    from rllab.envs.mujoco.half_cheetah_env import HalfCheetahEnv
+# elif use_env == 'augmented':
+#     from private_examples.swimmer_local_env import SwimmerEnv
+# else:
+#     assert use_env == 'com'
+#     from private_examples.com_swimmer_env import SwimmerEnv
 
 import joblib
 
@@ -69,7 +69,7 @@ if use_init:
     algo.train()
 else:
     stub(globals())
-    env = normalize(SwimmerEnv())
+    env = normalize(HalfCheetahEnv())
     if use_tf:
         env = TfEnv(env)
         policy = GaussianMLPPolicy(
@@ -93,14 +93,14 @@ else:
         baseline=baseline,
         batch_size=4000,
         max_path_length=100,
-        n_itr=000,
+        n_itr=100,
         discount=0.99,
         step_size=0.01,
     )
 
     run_experiment_lite(
         algo.train(),
-        exp_prefix='%s_exp'%use_env,
+        exp_prefix='half_cheetah_%s_exp'%use_env,
         n_parallel = 1,
         snapshot_mode='last',
         seed=1,
