@@ -8,6 +8,7 @@ from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 from sandbox.rocky.tf.samplers.vectorized_sampler import VectorizedSampler
 import pickle
 import os.path
+import numpy as np
 
 def save_to_pickle(data, filename,folder='/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data'):
     filename = os.path.join(folder, filename)
@@ -82,6 +83,12 @@ class BatchPolopt(RLAlgorithm):
         self.store_paths = store_paths
         self.whole_paths = whole_paths
         self.fixed_horizon = fixed_horizon
+        self.kwargs = kwargs
+        if 'reset_init_path' in self.kwargs:
+            assert 'horizon' in self.kwargs
+            import pickle
+            with open(kwargs['reset_init_path'], 'rb') as f:
+                self.reset_initial_states = pickle.load(f)
         if sampler_cls is None:
             if self.policy.vectorized and not force_batch_sampler:
                 sampler_cls = VectorizedSampler
@@ -106,26 +113,54 @@ class BatchPolopt(RLAlgorithm):
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
 
-    def evaluate_fixed_init_trajectories(self):
-        valid_init_path = '/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data/policy_validation_inits_swimmer_rllab.save'
-        with open(valid_init_path, 'rb') as f:
-            valid_inits = pickle.load(f)
-        batch_size, obs_dim = valid_inits.shape
-        total_cost = 0.0
-        for i in range(batch_size):
-            cur_obs = self.env._wrapped_env._wrapped_env.reset(valid_inits[i])
-            for t in range(100):
-                action_dist = self.policy.get_action(cur_obs)
-                action = action_dist[1]['mean']
-                next_obs, reward, done, info = self.env.step(action)
-                cur_obs = next_obs
-                total_cost -= reward
-        avg_eps_cost = total_cost/batch_size
-        return avg_eps_cost
+    def evaluate_fixed_init_trajectories(self,
+                                         reset_initial_states,
+                                         horizon):
+        def f(x):
+            if hasattr(self.env.wrapped_env, 'wrapped_env'):
+                inner_env = self.env.wrapped_env.wrapped_env
+                observation = inner_env.reset(x)
+            else:
+                self.env.reset()
+                half = int(len(x) / 2)
+                inner_env = self.env.wrapped_env.env.unwrapped
+                inner_env.set_state(x[:half], x[half:])
+                observation = inner_env._get_obs()
+            episode_reward = 0.0
+            episode_cost = 0.0
+            for t in range(horizon):
+                action = self.policy.get_action(observation)[1]['mean'][None]
+                # clipping
+                action = np.clip(action, *self.env.action_space.bounds)
+                next_observation, reward, done, info = self.env.step(action[0])
+                cost = inner_env.cost_np(observation[None], action, next_observation[None])
+                # Update observation
+                observation = next_observation
+                # Update cost
+                episode_cost += cost
+                # Update reward
+                episode_reward += reward
+            # assert episode_cost + episode_reward < 1e-2
+            return episode_cost
+
+        # Run evaluation in parallel
+        outs = np.array(list(map(f, reset_initial_states)))
+        # Return avg_eps_reward and avg_eps_cost accordingly
+        return np.mean(outs)
 
     def train(self):
-        if tf.get_default_session() is not None:
-            sess = tf.get_default_session()
+        if 'initialized_path' in self.kwargs:
+            import joblib
+            from sandbox.thanard.bootstrapping.utils import get_session
+            sess = get_session(interactive=True, mem_frac=0.1)
+            data = joblib.load(self.kwargs['initialized_path'])
+            self.policy = data['policy']
+            self.env = data['env']
+            self.baseline = data['baseline']
+            self.init_opt()
+            sess.run(tf.assign(self.policy._l_std_param.param, np.zeros(
+                self.env.action_space.shape[0]
+            )))
             uninitialized_vars=[]
             for var in tf.global_variables():
                 try:
@@ -163,11 +198,11 @@ class BatchPolopt(RLAlgorithm):
                             input("Plotting evaluation run: Press Enter to "
                                   "continue...")
                 # TODO: eval on validation data
-                avg_eps_cost = self.evaluate_fixed_init_trajectories()
-                logger.log('real validation cost: %f' % avg_eps_cost)
-                avg_eps_costs.append(avg_eps_cost)
-            data = {'avg_eps_costs':avg_eps_costs, 'batch_size':self.batch_size}
-            save_to_pickle(data, 'trpo-results-resumed-from-0.3-batch-size-%d.pkl'%self.batch_size)
+                # avg_eps_cost = self.evaluate_fixed_init_trajectories()
+                # logger.log('real validation cost: %f' % avg_eps_cost)
+                # avg_eps_costs.append(avg_eps_cost)
+            # data = {'avg_eps_costs':avg_eps_costs, 'batch_size':self.batch_size}
+            # save_to_pickle(data, 'trpo-results-resumed-from-0.3-batch-size-%d.pkl'%self.batch_size)
         else:
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
@@ -192,6 +227,11 @@ class BatchPolopt(RLAlgorithm):
                         logger.log("Saved")
                         logger.record_tabular('Time', time.time() - start_time)
                         logger.record_tabular('ItrTime', time.time() - itr_start_time)
+                        if 'horizon' in self.kwargs:
+                            avg_cost = self.evaluate_fixed_init_trajectories(
+                                self.reset_initial_states,
+                                self.kwargs['horizon'])
+                            logger.record_tabular('validation_cost', avg_cost)
                         logger.dump_tabular(with_prefix=False)
                         if self.plot:
                             self.update_plot()

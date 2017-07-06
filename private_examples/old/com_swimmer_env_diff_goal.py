@@ -5,7 +5,6 @@ import numpy as np
 from rllab.core.serializable import Serializable
 from rllab.misc import logger
 from rllab.misc import autoargs
-import tensorflow as tf
 
 def get_xy_coordinate(theta):
     return np.array([np.cos(theta), np.sin(theta)])
@@ -70,8 +69,6 @@ class SwimmerEnv(MujocoEnv, Serializable):
         scaling = (ub - lb) * 0.5
         ctrl_cost = 0.5 * self.ctrl_cost_coeff * np.sum(
             np.square(action / scaling))
-        # ctrl_cost = - 0.5 * self.ctrl_cost_coeff * np.sum(
-        # np.log(1+1e-8 -(action/scaling)**2))
         forward_reward = self.get_body_comvel("torso")[0]
         reward = forward_reward - ctrl_cost
         done = False
@@ -101,14 +98,3 @@ class SwimmerEnv(MujocoEnv, Serializable):
             logger.record_tabular('MaxForwardProgress', np.nan)
             logger.record_tabular('MinForwardProgress', np.nan)
             logger.record_tabular('StdForwardProgress', np.nan)
-
-    def cost_np(self, x, u, x_next):
-        assert np.amax(np.abs(u)) <= 1.0
-        return -np.mean(x_next[:, 5] - self.ctrl_cost_coeff * np.mean(np.square(u), axis=1))
-
-    def cost_tf(self, x, u, x_next):
-        return -tf.reduce_mean(x_next[:, 5] - self.ctrl_cost_coeff * tf.reduce_mean(tf.square(u), axis=1))
-
-    def cost_np_vec(self, x, u, x_next):
-        assert np.amax(np.abs(u)) <= 1.0
-        return -(x_next[:, 5] - self.ctrl_cost_coeff * np.mean(np.square(u), axis=1))

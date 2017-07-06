@@ -7,7 +7,7 @@ from rllab.policies.gaussian_mlp_policy import GaussianMLPPolicy
 
 
 def run_task(*_):
-    env = normalize(GymEnv("Pendulum-v0"))
+    env = normalize(GymEnv("Reacher-v1"))
 
     policy = GaussianMLPPolicy(
         env_spec=env.spec,
@@ -23,7 +23,7 @@ def run_task(*_):
         baseline=baseline,
         batch_size=4000,
         max_path_length=env.horizon,
-        n_itr=50,
+        n_itr=200,
         discount=0.99,
         step_size=0.01,
         # Uncomment both lines (this and the plot parameter below) to enable plotting

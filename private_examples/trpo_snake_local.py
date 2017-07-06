@@ -1,5 +1,5 @@
 use_tf = True
-use_init = False
+use_init = True
 use_env = 'com'
 if use_tf:
     import tensorflow as tf
@@ -13,13 +13,9 @@ else:
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
-if use_env == 'rllab':
-    from rllab.envs.mujoco.half_cheetah_env import HalfCheetahEnv
-# elif use_env == 'augmented':
-#     from private_examples.swimmer_local_env import SwimmerEnv
-else:
-    assert use_env == 'com'
-    from private_examples.com_half_cheetah_env import HalfCheetahEnv
+
+assert use_env == 'com'
+from private_examples.com_snake_env import SnakeEnv
 
 import joblib
 
@@ -44,17 +40,14 @@ def get_session(interactive=False, mem_frac=0.1):
 
 
 if use_init:
-    # 1.0 TRPO
-    # initialized_path = 'data/local/experiment/experiment_2017_04_10_12_02_39_0001/params.pkl'
-    # 0.3 TRPO with tanh output
-    initialized_path = '/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data/params-0.3-initialized-trpo.pkl'
-    # 0.3 TRPO without output nonlinearity
-    # initialized_path = '/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data/params-0.3-initialized-trpo-no-action-squashing.pkl'
+    initialized_path = '/home/thanard/Downloads/rllab/data/local/snake-2-models/snake-2-models_2017_06_23_10_49_15_0001/params.pkl'
     sess = get_session(True)
     data = joblib.load(initialized_path)
     policy = data['policy']
     env = data['env']
     baseline = data['baseline']
+    import numpy as np
+    sess.run(tf.assign(policy._l_std_param.param, np.zeros(4)))
     algo = TRPO(
         env=env,
         policy=policy,
@@ -69,7 +62,7 @@ if use_init:
     algo.train()
 else:
     stub(globals())
-    env = normalize(HalfCheetahEnv())
+    env = normalize(SnakeEnv())
     if use_tf:
         env = TfEnv(env)
         policy = GaussianMLPPolicy(
@@ -92,16 +85,16 @@ else:
         policy=policy,
         baseline=baseline,
         batch_size=4000,
-        max_path_length=200,
+        max_path_length=100,
         n_itr=1000,
         discount=0.99,
         step_size=0.01,
     )
-
+    print(env, algo, baseline)
     run_experiment_lite(
         algo.train(),
-        exp_prefix='%s-half-cheetah-exp'%use_env,
+        exp_prefix='%s_exp'%use_env,
         n_parallel = 1,
         snapshot_mode='last',
-        seed=1
+        seed=1,
     )

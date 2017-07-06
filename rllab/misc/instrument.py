@@ -800,8 +800,9 @@ def launch_ec2(params_list, exp_prefix, docker_image, code_full_path,
         # """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR,
         #            aws_region=config.AWS_REGION_NAME))
         sio.write("""
-            aws s3 cp {code_full_path} /tmp/rllab_code.tar.gz
-        """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR))
+            aws s3 cp {code_full_path} /tmp/rllab_code.tar.gz --region {aws_region}
+        """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR,
+                   aws_region=config.AWS_REGION_NAME))
         sio.write("""
             mkdir -p {local_code_path}
         """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR,
@@ -816,15 +817,16 @@ def launch_ec2(params_list, exp_prefix, docker_image, code_full_path,
         # """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR,
         #            aws_region=config.AWS_REGION_NAME))
         sio.write("""
-            aws s3 cp --recursive {code_full_path} {local_code_path}
-        """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR))
+            aws s3 cp --recursive {code_full_path} {local_code_path} --region {aws_region}
+        """.format(code_full_path=code_full_path, local_code_path=config.DOCKER_CODE_DIR,
+                   aws_region=config.AWS_REGION_NAME))
     s3_mujoco_key_path = config.AWS_CODE_SYNC_S3_PATH + '/.mujoco/'
     # sio.write("""
     #     aws s3 cp --recursive {} {} --region {}
     # """.format(s3_mujoco_key_path, config.MUJOCO_KEY_PATH, config.AWS_REGION_NAME))
     sio.write("""
-        aws s3 cp --recursive {} {}
-    """.format(s3_mujoco_key_path, config.MUJOCO_KEY_PATH))
+        aws s3 cp --recursive {} {} --region {aws_region}
+    """.format(s3_mujoco_key_path, config.MUJOCO_KEY_PATH, aws_region=config.AWS_REGION_NAME))
     sio.write("""
         cd {local_code_path}
     """.format(local_code_path=config.DOCKER_CODE_DIR))
@@ -855,10 +857,11 @@ def launch_ec2(params_list, exp_prefix, docker_image, code_full_path,
             sio.write("""
                 while /bin/true; do
                     aws s3 sync --exclude '*' {include_png} {include_pkl} {include_log}--include '*.csv' --include '*.json' {log_dir} {remote_log_dir}
-                    sleep {periodic_sync_interval}
+                    sleep {periodic_sync_interval} --region {aws_region}
                 done & echo sync initiated""".format(include_png=include_png, include_pkl=include_pkl, include_log=include_log,
                                                      log_dir=log_dir, remote_log_dir=remote_log_dir,
-                                                     periodic_sync_interval=periodic_sync_interval))
+                                                     periodic_sync_interval=periodic_sync_interval,
+                                                     aws_region=config.AWS_REGION_NAME))
             if sync_log_on_termination:
                 # sio.write("""
                 #     while /bin/true; do
@@ -879,15 +882,15 @@ def launch_ec2(params_list, exp_prefix, docker_image, code_full_path,
                         if [ -z $(curl -Is http://169.254.169.254/latest/meta-data/spot/termination-time | head -1 | grep 404 | cut -d \  -f 2) ]
                           then
                             logger "Running shutdown hook."
-                            aws s3 cp /home/ubuntu/user_data.log {remote_log_dir}/stdout.log
-                            aws s3 cp --recursive {log_dir} {remote_log_dir}
+                            aws s3 cp /home/ubuntu/user_data.log {remote_log_dir}/stdout.log --region {aws_region}
+                            aws s3 cp --recursive {log_dir} {remote_log_dir} --region {aws_region}
                             break
                           else
                             # Spot instance not yet marked for termination.
                             sleep 5
                         fi
                     done & echo log sync initiated
-                """.format(log_dir=log_dir, remote_log_dir=remote_log_dir))
+                """.format(log_dir=log_dir, remote_log_dir=remote_log_dir, aws_region=config.AWS_REGION_NAME))
         if use_gpu:
             sio.write("""
                 for i in {1..800}; do su -c "nvidia-modprobe -u -c=0" ubuntu && break || sleep 3; done
@@ -902,14 +905,14 @@ def launch_ec2(params_list, exp_prefix, docker_image, code_full_path,
         #     aws s3 cp --recursive {log_dir} {remote_log_dir} --region {aws_region}
         # """.format(log_dir=log_dir, remote_log_dir=remote_log_dir, aws_region=config.AWS_REGION_NAME))
         sio.write("""
-            aws s3 cp --recursive {log_dir} {remote_log_dir}
-        """.format(log_dir=log_dir, remote_log_dir=remote_log_dir))
+            aws s3 cp --recursive {log_dir} {remote_log_dir} --region {aws_region}
+        """.format(log_dir=log_dir, remote_log_dir=remote_log_dir, aws_region=config.AWS_REGION_NAME))
         # sio.write("""
         #     aws s3 cp /home/ubuntu/user_data.log {remote_log_dir}/stdout.log --region {aws_region}
         # """.format(remote_log_dir=remote_log_dir, aws_region=config.AWS_REGION_NAME))
         sio.write("""
-            aws s3 cp /home/ubuntu/user_data.log {remote_log_dir}/stdout.log
-        """.format(remote_log_dir=remote_log_dir))
+            aws s3 cp /home/ubuntu/user_data.log {remote_log_dir}/stdout.log --region {aws_region}
+        """.format(remote_log_dir=remote_log_dir, aws_region=config.AWS_REGION_NAME))
 
     if terminate_machine:
         sio.write("""

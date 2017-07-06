@@ -214,6 +214,7 @@ def pop_prefix():
 
 
 def save_itr_params(itr, params):
+    # _snapshot_dir = "/tmp/training"
     if _snapshot_dir:
         if _snapshot_mode == 'all':
             file_name = osp.join(_snapshot_dir, 'itr_%d.pkl' % itr)

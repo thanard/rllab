@@ -20,7 +20,7 @@ with tf.Session() as sess:
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=str,
                         help='path to the snapshot file', default='swimmer_normalized_com_cost')
-    parser.add_argument('--max_path_length', type=int, default=100,
+    parser.add_argument('--horizon', type=int, default=100,
                         help='Max length of rollout')
     args = parser.parse_args()
 
@@ -49,7 +49,7 @@ with tf.Session() as sess:
     obs = env.reset()
     image = env.render(mode='rgb_array')
     policy.reset()
-    for t in range(args.max_path_length):
+    for t in range(args.horizon):
         compressed_image = to_img(image, frame_size=frame_size)
         # cv2.imshow('frame{}'.format(t), compressed_image)
         # cv2.waitKey(10)

@@ -1,6 +1,6 @@
 use_tf = True
 use_init = False
-use_env = 'com'
+use_env = 'local'
 if use_tf:
     import tensorflow as tf
     from sandbox.rocky.tf.algos.trpo import TRPO
@@ -13,45 +13,39 @@ else:
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
-if use_env == 'rllab':
-    from rllab.envs.mujoco.swimmer_env import SwimmerEnv
-elif use_env == 'augmented':
-    from private_examples.swimmer_local_env import SwimmerEnv
+if use_env == 'gym':
+    from rllab.envs.gym_env import GymEnv
+elif use_env == 'local':
+    from rllab.envs.gym_env import GymEnv
+    from private_examples.reacher_env import ReacherEnv
+    import gym
+    from sandbox.rocky.tf.spaces.box import Box
+    import sandbox.rocky.tf.envs.base as base
+    gym.envs.mujoco.reacher.ReacherEnv._get_obs = ReacherEnv._get_obs
+    gym.envs.mujoco.reacher.ReacherEnv._step = ReacherEnv._step
+    gym.envs.mujoco.reacher.ReacherEnv.observation_space = property(lambda self: Box(
+        low=ReacherEnv().observation_space.low,
+        high=ReacherEnv().observation_space.high
+    ))
+    gym.envs.mujoco.reacher.ReacherEnv.n_goals = ReacherEnv.n_goals
+    gym.envs.mujoco.reacher.ReacherEnv.n_states = ReacherEnv.n_states
+    base.TfEnv.observation_space = property(lambda self: Box(
+        low=ReacherEnv().observation_space.low,
+        high=ReacherEnv().observation_space.high
+    ))
 else:
-    assert use_env == 'com'
-    from private_examples.com_swimmer_env import SwimmerEnv
+    assert False
 
-# 1.0 TRPO
-# initialized_path = 'data/local/experiment/experiment_2017_04_10_12_02_39_0001/params.pkl'
-# 0.3 TRPO with tanh output
-# initialized_path = '/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data/params-0.3-initialized-trpo.pkl'
-# 0.3 TRPO without output nonlinearity
-# initialized_path = '/home/thanard/Dropbox/UC Berkeley/Research/bootstrapping/data/params-0.3-initialized-trpo-no-action-squashing.pkl'
-#     initialized_path = '/home/thanard/Downloads/rllab/data/s3/bptt-see-if-successful/bptt-see-if-successful_2017_06_13_20_19_34_0017/params.pkl'
-initialized_path = '/home/thanard/Downloads/rllab/data/s3/swimmer-512-model/swimmer-512-model_2017_07_02_01_32_23_0015/params.pkl'
-# kwargs = dict(
-#     reset_init_path="data_upload/policy_validation_inits_swimmer_rllab.save",
-#     cost_np=cost_np,
-#     horizon=100
-# )
+initialized_path = ""
 
 stub(globals())
-env = normalize(SwimmerEnv())
-if use_tf:
-    env = TfEnv(env)
-    policy = GaussianMLPPolicy(
-        name='policy',
-        env_spec=env.spec,
-        hidden_sizes=(32,32),
-        # output_nonlinearity=tf.nn.tanh
-    )
-else:
-    policy = GaussianMLPPolicy(
-        env_spec=env.spec,
-        # The neural network policy should have two hidden layers, each with 32 hidden units.
-        hidden_sizes=(32, 32),
-    )
-
+env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
+policy = GaussianMLPPolicy(
+    name='policy',
+    env_spec=env.spec,
+    hidden_sizes=(32, 32),
+    # output_nonlinearity=tf.nn.tanh
+)
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 if use_init:
@@ -72,17 +66,18 @@ else:
         policy=policy,
         baseline=baseline,
         batch_size=4000,
-        max_path_length=100,
+        max_path_length=50,
         n_itr=500,
         discount=1.00,
-        step_size=0.01
+        step_size=0.01,
     )
+
 run_experiment_lite(
     algo.train(),
-    exp_prefix='%s_exp'%use_env,
+    exp_prefix='reacher_%s_exp'%use_env,
     n_parallel = 1,
     snapshot_mode='last',
-    seed=1,
+    seed=1
 )
 
 # import rllab.config as config
@@ -115,11 +110,10 @@ run_experiment_lite(
 # for seed in range(20):
 #     run_experiment_lite(
 #         algo.train(),
-#         exp_prefix='%s_exp' % use_env,
-#         n_parallel=1,
+#         exp_prefix='reacher_%s_exp'%use_env,
+#         n_parallel = 1,
 #         snapshot_mode='last',
+#         mode='ec2',
 #         seed=seed,
-#         mode="ec2",
-#         variant=dict(seed=seed),
 #         aws_config=get_aws_config(1)
 #     )
