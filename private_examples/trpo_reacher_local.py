@@ -37,6 +37,10 @@ else:
     assert False
 
 initialized_path = ""
+kwargs = dict(
+    reset_init_path="data_upload/policy_validation_reset_inits_reacher.save",
+    horizon=50
+)
 
 stub(globals())
 env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
@@ -70,6 +74,7 @@ else:
         n_itr=500,
         discount=1.00,
         step_size=0.01,
+        **kwargs
     )
 
 run_experiment_lite(

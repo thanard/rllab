@@ -21,6 +21,10 @@ class PointMassEnv(Env, Serializable):
             qpos' = qpos + qvel*dt
             qvel' = qvel + u/m*dt
         """
+        eig_vec = np.array([[0.7, -0.6], [-0.3, -0.1]])
+        self.A = np.identity(2)# eig_vec @ np.diag([1.0, 0.8]) @ np.linalg.inv(eig_vec)
+        self.B = np.array([[0.2, -0.04], [.3, .9]])
+        self.c = np.array([0.0, 0.0])
         self.goal = None
         self.init_mean = np.zeros(2)
         self.init_std = 0.1
@@ -48,7 +52,8 @@ class PointMassEnv(Env, Serializable):
         qvel = self.qvel
         for i in range(self.frame_skip):
             qpos = np.clip(qpos + qvel*self.dt, *self.boundary)
-            qvel = np.clip(qvel + (action/self.mass)*self.dt, *self.vel_bounds)
+            # qvel = np.clip(qvel + (action/self.mass)*self.dt, *self.vel_bounds)
+            qvel = np.clip(self.A@qvel + self.B@action + self.c, *self.vel_bounds)
         self.qpos = qpos
         self.qvel = qvel
         return Step(observation=self.get_obs(), reward=self.get_reward(action), done=False)
