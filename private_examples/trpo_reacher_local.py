@@ -18,21 +18,6 @@ if use_env == 'gym':
 elif use_env == 'local':
     from rllab.envs.gym_env import GymEnv
     from private_examples.reacher_env import ReacherEnv
-    import gym
-    from sandbox.rocky.tf.spaces.box import Box
-    import sandbox.rocky.tf.envs.base as base
-    gym.envs.mujoco.reacher.ReacherEnv._get_obs = ReacherEnv._get_obs
-    gym.envs.mujoco.reacher.ReacherEnv._step = ReacherEnv._step
-    gym.envs.mujoco.reacher.ReacherEnv.observation_space = property(lambda self: Box(
-        low=ReacherEnv().observation_space.low,
-        high=ReacherEnv().observation_space.high
-    ))
-    gym.envs.mujoco.reacher.ReacherEnv.n_goals = ReacherEnv.n_goals
-    gym.envs.mujoco.reacher.ReacherEnv.n_states = ReacherEnv.n_states
-    base.TfEnv.observation_space = property(lambda self: Box(
-        low=ReacherEnv().observation_space.low,
-        high=ReacherEnv().observation_space.high
-    ))
 else:
     assert False
 
@@ -44,6 +29,8 @@ kwargs = dict(
 
 stub(globals())
 env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
+if use_env == 'local':
+    env.wrapped_env.env.env = ReacherEnv()
 policy = GaussianMLPPolicy(
     name='policy',
     env_spec=env.spec,
@@ -75,7 +62,7 @@ else:
         discount=1.00,
         step_size=0.01,
         **kwargs
-    )
+)
 
 run_experiment_lite(
     algo.train(),

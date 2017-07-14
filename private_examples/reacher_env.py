@@ -37,13 +37,21 @@ class ReacherEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         qpos = self.np_random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos
         while True:
             self.goal = self.np_random.uniform(low=-.2, high=.2, size=2)
-            if np.linalg.norm(self.goal) < 2:
+            if np.linalg.norm(self.goal) < .2:
                 break
         qpos[-2:] = self.goal
         qvel = self.init_qvel + self.np_random.uniform(low=-.005, high=.005, size=self.model.nv)
         qvel[-2:] = 0
         self.set_state(qpos, qvel)
         return self._get_obs()
+
+    def reset(self, obs=None):
+        if obs is not None:
+            self.set_state(np.concatenate([obs[:2], obs[4:6]]),
+                           np.concatenate([obs[2:4], np.zeros(2)]))
+            return self._get_obs()
+        else:
+            return self._reset()
 
     # def _get_obs(self):
     #     theta = self.model.data.qpos.flat[:2]
@@ -105,3 +113,28 @@ def get_fingertips_tf(x):
     x_cord = tf.reshape(0.1 * tf.cos(x[:, 0]) + 0.11 * tf.cos(x[:, 0] + x[:, 1]), (-1, 1))
     y_cord = tf.reshape(0.1 * tf.sin(x[:, 0]) + 0.11 * tf.sin(x[:, 0] + x[:, 1]), (-1, 1))
     return tf.concat([x_cord, y_cord], axis=1)
+
+'''
+Call this after loading reacher gym version.
+'''
+def gym_to_local():
+    import gym
+    from sandbox.rocky.tf.spaces.box import Box
+    import sandbox.rocky.tf.envs.base as base
+    gym.envs.mujoco.reacher.ReacherEnv._get_obs = ReacherEnv._get_obs
+    gym.envs.mujoco.reacher.ReacherEnv._step = ReacherEnv._step
+    gym.envs.mujoco.reacher.ReacherEnv.observation_space = property(lambda self: Box(
+        low=ReacherEnv().observation_space.low,
+        high=ReacherEnv().observation_space.high
+    ))
+    gym.envs.mujoco.reacher.ReacherEnv.reset = ReacherEnv.reset
+    gym.envs.mujoco.reacher.ReacherEnv.reset_model = ReacherEnv.reset_model
+    gym.envs.mujoco.reacher.ReacherEnv.n_goals = ReacherEnv.n_goals
+    gym.envs.mujoco.reacher.ReacherEnv.n_states = ReacherEnv.n_states
+    gym.envs.mujoco.reacher.ReacherEnv.cost_np = ReacherEnv.cost_np
+    gym.envs.mujoco.reacher.ReacherEnv.cost_tf = ReacherEnv.cost_tf
+    gym.envs.mujoco.reacher.ReacherEnv.cost_np_vec = ReacherEnv.cost_np_vec
+    base.TfEnv.observation_space = property(lambda self: Box(
+        low=ReacherEnv().observation_space.low,
+        high=ReacherEnv().observation_space.high
+    ))
