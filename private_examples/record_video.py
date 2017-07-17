@@ -10,6 +10,7 @@ import cv2
 from rllab.misc import console
 import argparse
 import pdb
+from rllab.misc.console import query_yes_no
 
 frame_size = (500, 500)
 
@@ -112,9 +113,7 @@ def _analyze_trajectories(Os, total_costs, log_path, dims_to_plot=None):
     plt.ylabel('total cost')
     plt.legend()
     plt.savefig(osp.join(log_path, 'total_costs.png'))
-    pdb.set_trace()
     plt.close()
-    pdb.set_trace()
 def _get_inner_env(env):
     # pdb.set_trace()
     if hasattr(env, 'wrapped_env'):
@@ -226,30 +225,34 @@ if __name__ == '__main__':
         kwargs = {'policy': policy}
 
         # Load tf session ckpt
-        ckpt_path = osp.join(filepath,
-                             args.ckpt)
-        meta_path = ckpt_path + '.meta'
-        saver = tf.train.import_meta_graph(meta_path)
-        saver.restore(sess, ckpt_path)
-        if osp.exists(meta_path):
-            kwargs = {
-                'sess': sess,
-                'policy': policy,
-                # 'policy_in': tf.get_collection('policy_in')[0],
-                # 'policy_out': tf.get_collection('policy_out')[0],
-                'dynamics_in': tf.get_collection('dynamics_in')[0],
-                'dynamics_out': tf.get_collection('training_dynamics_out')[0],
-                'cost_np': _get_inner_env(env).cost_np
-            }
+        if "model" in modes:
+            ckpt_path = osp.join(filepath,
+                                 args.ckpt)
+            meta_path = ckpt_path + '.meta'
+            saver = tf.train.import_meta_graph(meta_path)
+            saver.restore(sess, ckpt_path)
+            if osp.exists(meta_path):
+                kwargs = {
+                    'sess': sess,
+                    'policy': policy,
+                    # 'policy_in': tf.get_collection('policy_in')[0],
+                    # 'policy_out': tf.get_collection('policy_out')[0],
+                    'dynamics_in': tf.get_collection('dynamics_in')[0],
+                    'dynamics_out': tf.get_collection('training_dynamics_out')[0],
+                    'cost_np': _get_inner_env(env).cost_np
+                }
         count = 0
         while True:
-            log_path = osp.join(filepath, 'traj-%d' % count)
-            if not osp.exists(log_path):
+            while True:
+                log_path = osp.join(filepath, 'traj-%d' % count)
+                if not osp.exists(log_path):
+                    break
+                count += 1
+            os.makedirs(log_path)
+            record(log_path,
+                   env,
+                   args.horizon,
+                   kwargs,
+                   modes)
+            if not query_yes_no('Continue simulation?'):
                 break
-            count += 1
-        os.makedirs(log_path)
-        record(log_path,
-               env,
-               args.horizon,
-               kwargs,
-               modes)

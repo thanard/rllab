@@ -13,11 +13,9 @@ else:
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
-if use_env == 'gym':
-    from rllab.envs.gym_env import GymEnv
-elif use_env == 'local':
-    from rllab.envs.gym_env import GymEnv
-    from private_examples.reacher_env import ReacherEnv
+from rllab.envs.gym_env import GymEnv
+if use_env == 'local':
+    from private_examples.reacher_env import ReacherEnv, gym_to_local
 else:
     assert False
 
@@ -30,7 +28,8 @@ kwargs = dict(
 stub(globals())
 env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
 if use_env == 'local':
-    env.wrapped_env.env.env = ReacherEnv()
+    gym_to_local()
+    # env.wrapped_env.env.env = ReacherEnv()
 policy = GaussianMLPPolicy(
     name='policy',
     env_spec=env.spec,
@@ -47,7 +46,7 @@ if use_init:
         batch_size=4000,
         max_path_length=100,
         n_itr=1000,
-        discount=0.99,
+        discount=1.00,
         step_size=0.01,
         initialized_path=initialized_path
     )
@@ -56,7 +55,7 @@ else:
         env=env,
         policy=policy,
         baseline=baseline,
-        batch_size=4000,
+        batch_size=16000,
         max_path_length=50,
         n_itr=500,
         discount=1.00,

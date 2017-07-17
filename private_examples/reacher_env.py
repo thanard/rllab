@@ -28,7 +28,8 @@ class ReacherEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         obs_next = self._get_obs()
         reward = - self.cost_np(obs[None], a[None], obs_next[None])
         done = False
-        return obs_next, reward, done, {}
+        return obs_next, reward, done, dict(ctrl_cost=np.sum(np.square(a)),
+                                            comment='this_is_local_step')
 
     def viewer_setup(self):
         self.viewer.cam.trackbodyid = 0
@@ -90,16 +91,16 @@ class ReacherEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         '''
         return 4
 
-    def cost_np(self, x, u, x_next, ctrl_cost_coeff=0.02):
+    def cost_np(self, x, u, x_next, ctrl_cost_coeff=2):
         assert np.amax(np.abs(u)) <= 1.0
         return np.mean(np.linalg.norm(x[:, -2:]-get_fingertips(x), axis=1) +\
                        ctrl_cost_coeff*0.5*np.sum(np.square(u), axis=1))
 
-    def cost_tf(self, x, u, x_next, ctrl_cost_coeff=0.02):
+    def cost_tf(self, x, u, x_next, ctrl_cost_coeff=2):
         return tf.reduce_mean(tf.norm(x[:, -2:]-get_fingertips_tf(x), axis=1) +\
                        ctrl_cost_coeff*0.5*tf.reduce_sum(tf.square(u), axis=1))
 
-    def cost_np_vec(self, x, u, x_next, ctrl_cost_coeff=0.02):
+    def cost_np_vec(self, x, u, x_next, ctrl_cost_coeff=2):
         assert np.amax(np.abs(u)) <= 1.0
         return (np.linalg.norm(x[:, -2:]-get_fingertips(x), axis=1) +\
                        ctrl_cost_coeff*0.5*np.sum(np.square(u), axis=1))
