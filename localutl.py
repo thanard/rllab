@@ -5,7 +5,6 @@ import os
 import click
 import numpy as np
 import joblib
-import tensorflow as tf
 import rllab.config as config
 import subprocess
 
@@ -34,9 +33,71 @@ def cli(ctx, verbose):
     logging.getLogger().setLevel(DEBUG_LOGGING_MAP.get(verbose, logging.DEBUG))
 
 @cli.command()
+@click.argument('folder_path')
+def plot(folder_path):
+    """ Plot MB learning curves """
+    script = "sandbox/thanard/bootstrapping/plot_learning_curve.py"
+    command = [
+        "python",
+        os.path.join(config.PROJECT_PATH, script),
+        folder_path
+    ]
+    subprocess.check_call(command)
+
+@cli.command()
+@click.argument('algo')
+@click.argument('env')
+@click.option('-ec2', is_flag=True)
+@click.option('-prefix', default=None)
+@click.option('--n_seeds', '-n', default='10')
+def run(algo, env, ec2, prefix, n_seeds):
+    """ Run MB algo """
+    script = "sandbox/thanard/bootstrapping/run_model_based_rl.py"
+    command = [
+        "python",
+        os.path.join(config.PROJECT_PATH, script),
+        algo,
+        "-env",
+        env,
+        "-n",
+        n_seeds
+    ]
+    if ec2:
+        command.append("-ec2")
+    if prefix is not None:
+        command.extend(["-prefix", prefix])
+    subprocess.check_call(command)
+
+@cli.command()
+@click.argument('env')
+@click.option('--use_eval', '-ue', is_flag=True)
+@click.option('--policy_init_path', '-ip', default=None)
+@click.option('--horizon', '-h', type=str, default="100")
+@click.option('--batch_size', '-n', type=str, default="4000")
+def trpo(env, use_eval, policy_init_path, horizon, batch_size):
+    """ Run TRPO """
+    script = "private_examples/run_trpo.py"
+    command = [
+        "python",
+        os.path.join(config.PROJECT_PATH, script),
+        "--env_name",
+        env,
+        "--horizon",
+        horizon,
+        "--batch_size",
+        batch_size
+    ]
+    if policy_init_path is not None:
+        command.extend(["--policy_init_path", policy_init_path])
+    if use_eval:
+        command.append("-use_eval")
+    subprocess.check_call(command)
+
+@cli.command()
 @click.argument('params_path')
 @click.option('--horizon', '-h', type=str, default="100")
-def sim_policy(params_path, horizon):
+def sim(params_path, horizon):
+    """ Sim policy """
     script = "private_examples/sim_policy.py"
     command = [
         "python",
@@ -153,7 +214,9 @@ def _evaluate_fixed_inits(policy,
 @click.option('--horizon', '-h',
               type=int,
               default=100)
-def eval_policy(params_path, env, horizon):
+def eval(params_path, env, horizon):
+    """ Eval policy """
+    import tensorflow as tf
     with tf.Session() as sess:
         data = joblib.load(params_path)
         # sess.run(tf.global_variables_initializer())

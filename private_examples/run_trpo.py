@@ -1,0 +1,85 @@
+import argparse
+import tensorflow as tf
+from sandbox.rocky.tf.algos.trpo import TRPO
+from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
+from sandbox.rocky.tf.envs.base import TfEnv
+
+from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
+from rllab.envs.normalized_env import normalize
+from rllab.misc.instrument import stub, run_experiment_lite
+from rllab.envs.gym_env import GymEnv
+
+get_eval_data_path=dict(
+    reacher="data_upload/policy_validation_reset_inits_reacher.save",
+    swimmer="data_upload/policy_validation_inits_swimmer.save",
+    snake="data_upload/policy_validation_reset_inits_snake.save"
+)
+
+from private_examples.com_swimmer_env import SwimmerEnv
+from private_examples.com_snake_env import SnakeEnv
+from private_examples.reacher_env import ReacherEnv, gym_to_local
+def get_env(env_name):
+    if env_name == 'reacher':
+        env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
+        gym_to_local()
+        env.wrapped_env.env.env = ReacherEnv()
+        return env
+    elif env_name == 'snake':
+        return TfEnv(normalize(SnakeEnv()))
+    elif env_name == 'swimmer':
+        return TfEnv(normalize(SwimmerEnv()))
+    else:
+        assert False, "Define the env from env_name."
+
+def get_algo(env_name,
+             use_eval,
+             init_path,
+             horizon,
+             batch_size):
+    env = get_env(env_name)
+    policy = GaussianMLPPolicy(
+        name='policy',
+        env_spec=env.spec,
+        hidden_sizes=(32, 32),
+        # output_nonlinearity=tf.nn.tanh
+    )
+    baseline = LinearFeatureBaseline(env_spec=env.spec)
+    kwargs = dict(
+        env=env,
+        policy=policy,
+        baseline=baseline,
+        batch_size=batch_size,
+        max_path_length=horizon,
+        n_itr=1000,
+        discount=1.00,
+        step_size=0.01,
+    )
+    if use_eval:
+        kwargs["reset_init_path"] = get_eval_data_path[env_name]
+        kwargs["horizon"] = horizon
+    if init_path is not None:
+        kwargs["initialized_path"]=init_path
+    return TRPO(**kwargs)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='run trpo locally options')
+    parser.add_argument('--env_name')
+    parser.add_argument('-use_eval', action="store_true", default=False)
+    parser.add_argument('--policy_init_path', default=None)
+    parser.add_argument('--horizon', type=int)
+    parser.add_argument('--batch_size', type=int, default=4000)
+    options = parser.parse_args()
+
+    stub(globals())
+    algo = get_algo(options.env_name,
+                    options.use_eval,
+                    options.policy_init_path,
+                    options.horizon,
+                    options.batch_size)
+    run_experiment_lite(
+        algo.train(),
+        exp_prefix='%s-mf-trpo' % options.env_name,
+        n_parallel=1,
+        snapshot_mode='last',
+        seed=1
+    )

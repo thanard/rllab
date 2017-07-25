@@ -191,6 +191,11 @@ class BatchPolopt(RLAlgorithm):
                     logger.log("Saved")
                     logger.record_tabular('Time', time.time() - start_time)
                     logger.record_tabular('ItrTime', time.time() - itr_start_time)
+                    if 'horizon' in self.kwargs:
+                        avg_cost = self.evaluate_fixed_init_trajectories(
+                            self.reset_initial_states,
+                            self.kwargs['horizon'])
+                        logger.record_tabular('validation_cost', avg_cost)
                     logger.dump_tabular(with_prefix=False)
                     if self.plot:
                         self.update_plot()
