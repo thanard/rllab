@@ -7,6 +7,8 @@ import numpy as np
 import joblib
 import rllab.config as config
 import subprocess
+import colored_traceback
+colored_traceback.add_hook(always=True)
 
 DEBUG_LOGGING_MAP = {
     0: logging.CRITICAL,
@@ -14,9 +16,20 @@ DEBUG_LOGGING_MAP = {
     2: logging.INFO,
     3: logging.DEBUG
 }
-
+"""
+Commands:
+    plot
+    viskit
+    sim
+    record
+    trpo
+    eval
+"""
 load_reset_inits_paths = {
-    'reacher': 'data_upload/policy_validation_reset_inits_reacher.save'
+    'reacher': 'data_upload/policy_validation_reset_inits_reacher.save',
+    'snake': 'data_upload/policy_validation_reset_inits_snake.save',
+    'swimmer': 'data_upload/policy_validation_inits_swimmer.save',
+    'half_cheetah': "data_upload/policy_validation_reset_inits_half_cheetah.save"
 }
 
 @click.group()
@@ -41,6 +54,21 @@ def plot(folder_path):
         "python",
         os.path.join(config.PROJECT_PATH, script),
         folder_path
+    ]
+    subprocess.check_call(command)
+
+@cli.command()
+@click.argument('path')
+@click.option('--port', '-p', default='5000')
+def viskit(path, port):
+    """ Plot multiple runs using viskit """
+    script = "rllab/viskit/frontend.py"
+    command = [
+        "python",
+        os.path.join(config.PROJECT_PATH, script),
+        path,
+        "--port",
+        port
     ]
     subprocess.check_call(command)
 
@@ -74,7 +102,9 @@ def run(algo, env, ec2, prefix, n_seeds):
 @click.option('--policy_init_path', '-ip', default=None)
 @click.option('--horizon', '-h', type=str, default="100")
 @click.option('--batch_size', '-n', type=str, default="4000")
-def trpo(env, use_eval, policy_init_path, horizon, batch_size):
+@click.option('--ec2', '-ec2', is_flag=True)
+@click.option('--num_exps', '-ne', type=str, default="1")
+def trpo(env, use_eval, policy_init_path, horizon, batch_size, ec2, num_exps):
     """ Run TRPO """
     script = "private_examples/run_trpo.py"
     command = [
@@ -91,6 +121,8 @@ def trpo(env, use_eval, policy_init_path, horizon, batch_size):
         command.extend(["--policy_init_path", policy_init_path])
     if use_eval:
         command.append("-use_eval")
+    if ec2:
+        command.extend(["-ec2", "--n", num_exps])
     subprocess.check_call(command)
 
 @cli.command()
@@ -108,66 +140,46 @@ def sim(params_path, horizon):
     ]
     subprocess.check_call(command)
 
-# @cli.command()
-# @click.argument('instance_type')
-# @click.option('--policy', '-d',
-#               help="policy to simulate",
-#               type=str,
-#               default='')
-# import private_examples.sim_policy as sim_policy
-# def sim(policy, ):
-#     for f in args.files:
-#         with tf.Session() as sess:
-#             try:
-#                 data = joblib.load(f)
-#             except:
-#                 with tf.variable_scope("", reuse=True):
-#                     data = joblib.load(f)
-#             policy = data['policy']
-#             env = data['env']
-#             while True:
-#                 path = rollout(env, policy, max_path_length=args.horizon,
-#                            animated=True, speedup=args.speedup, action_noise=args.action_noise)
-#                 print(path['observations'])
-#                 print(path['actions'])
-#                 print(path['rewards'])
-#                 print(np.sum(path['rewards']))
-#                 is_plot = False
-#                 is_plot = plot_2D_path(path['observations'], env)
-#                 if args.no_query:
-#                     break
-#                 else:
-#                     if not query_yes_no('Continue simulation?'):
-#                         break
-#             if is_plot:
-#                 plt.savefig(os.path.join(os.path.dirname(f), 'trajectory-%.6f.png'%np.random.uniform()))
-
-# @cli.command()
-# @click.argument('folder_path')
-# @click.option('--iter', '-i',
-#               help='choose iter to load from',
-#               type=str,
-#               default='final')
+@cli.command()
+@click.argument('folder')
+@click.option('--horizon', '-h',
+              type=str,
+              default='100',
+              help='Max length of rollout')
+@click.option('--policy', '-p',
+              type=str,
+              help='path to replace default params.pkl',
+              default='')
+@click.option('--iter', '-i',
+              help='choose iter to load from',
+              type=str,
+              default='final')
+@click.option('--mode',
+              type=str,
+              default='r',
+              help='choose modes')
 # @click.option('--scope', '-s',
 #               help="model scope",
 #               type=str,
 #               default='training_dynamics')
-# import private_examples.record_video as record_video
-# def record(folder_path,
-#            iter,
-#            ):
-#     sess_path = os.path.join(folder_path, 'training_logs/policy-and-models-%s.ckpt'%iter)
-#     with tf.Session() as sess:
-#         saver = tf.train.import_meta_graph(sess_path+'.meta')
-#         saver.restore(sess, sess_path)
-#
-#         policy_in = tf.get_collection('policy_in')[0]
-#         policy_out = tf.get_collection('policy_out')[0]
-#
-#         dynamics_in = tf.get_collection('dynamics_in')[0]
-#         dynamics_out_list = tf.get_collection('%s_out')
-#
-#         for dynamics_out in dynamics_out_list:
+def record(folder, horizon, policy, iter, mode):
+    """ Record rollouts """
+    script = "private_examples/record_video.py"
+    command = [
+        "python",
+        os.path.join(config.PROJECT_PATH, script),
+        folder,
+        "--horizon",
+        horizon,
+        "--policy",
+        policy,
+        "--mode",
+        mode,
+        "--ckpt",
+        'training_logs/policy-and-models-%s.ckpt' % iter
+    ]
+    subprocess.check_call(command)
+
 import pickle
 import joblib
 def _evaluate_fixed_inits(policy,

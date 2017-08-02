@@ -55,7 +55,8 @@ def record(log_path,
         obs = init
         Os[mode].append(obs)
         inner_env = _get_inner_env(env)
-        inner_env.reset(obs)
+        if mode == 'model':
+            inner_env.reset(obs)
         image = inner_env.render(mode='rgb_array')
         total_cost = 0.0
         total_costs[mode].append(total_cost)
@@ -67,11 +68,11 @@ def record(log_path,
             action = _get_action(kwargs, obs)
             action = np.clip(action, *env.action_space.bounds)
             next_obs, reward, done, info = _step(kwargs, env, obs, action, mode)
-            # pdb.set_trace()
             total_cost -= reward
             obs = next_obs
             Os[mode].append(obs)
-            inner_env.reset(next_obs)
+            if mode == 'model':
+                inner_env.reset(next_obs)
             image = inner_env.render(mode='rgb_array')
             # if done:
             #     break
@@ -174,6 +175,9 @@ if __name__ == '__main__':
         Use this script to save videos of real and simulated trajectories.
         It also gives visualization of the prediction errors in each state
         dimension.
+        Note that sim video only works when observation is the same as state,
+        e.g., reacher, or when we have a reset function from observation, e.g.,
+        swimmer.
         Example:
             python record_video.py "fullpath"
                 --horizon 50
@@ -218,9 +222,9 @@ if __name__ == '__main__':
         policy = data["policy"]
         env = data['env']
         # Comment the lines below out.
-        from private_examples.reacher_env import ReacherEnv
-
-        env.wrapped_env.env.env = ReacherEnv()
+        # from private_examples.reacher_env import ReacherEnv
+        #
+        # env.wrapped_env.env.env = ReacherEnv()
         # env = SwimmerEnv()
         kwargs = {'policy': policy}
 

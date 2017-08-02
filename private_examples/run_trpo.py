@@ -8,16 +8,20 @@ from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
 from rllab.envs.gym_env import GymEnv
+import rllab.config as config
+import os.path
 
 get_eval_data_path=dict(
     reacher="data_upload/policy_validation_reset_inits_reacher.save",
     swimmer="data_upload/policy_validation_inits_swimmer.save",
-    snake="data_upload/policy_validation_reset_inits_snake.save"
+    snake="data_upload/policy_validation_reset_inits_snake.save",
+    half_cheetah="data_upload/policy_validation_reset_inits_half_cheetah.save"
 )
 
 from private_examples.com_swimmer_env import SwimmerEnv
 from private_examples.com_snake_env import SnakeEnv
 from private_examples.reacher_env import ReacherEnv, gym_to_local
+from private_examples.com_half_cheetah_env import HalfCheetahEnv
 def get_env(env_name):
     if env_name == 'reacher':
         env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
@@ -28,6 +32,8 @@ def get_env(env_name):
         return TfEnv(normalize(SnakeEnv()))
     elif env_name == 'swimmer':
         return TfEnv(normalize(SwimmerEnv()))
+    elif env_name == 'half_cheetah':
+        return TfEnv(normalize(HalfCheetahEnv()))
     else:
         assert False, "Define the env from env_name."
 
@@ -55,7 +61,7 @@ def get_algo(env_name,
         step_size=0.01,
     )
     if use_eval:
-        kwargs["reset_init_path"] = get_eval_data_path[env_name]
+        kwargs["reset_init_path"] = os.path.join(config.PROJECT_PATH, get_eval_data_path[env_name])
         kwargs["horizon"] = horizon
     if init_path is not None:
         kwargs["initialized_path"]=init_path
@@ -68,18 +74,33 @@ if __name__ == "__main__":
     parser.add_argument('--policy_init_path', default=None)
     parser.add_argument('--horizon', type=int)
     parser.add_argument('--batch_size', type=int, default=4000)
+    parser.add_argument('-ec2', action="store_true", default=False)
+    parser.add_argument('--n', type=int, default=1)
     options = parser.parse_args()
-
+    from sandbox.thanard.bootstrapping.run_model_based_rl import get_aws_config
     stub(globals())
     algo = get_algo(options.env_name,
                     options.use_eval,
                     options.policy_init_path,
                     options.horizon,
                     options.batch_size)
-    run_experiment_lite(
-        algo.train(),
-        exp_prefix='%s-mf-trpo' % options.env_name,
-        n_parallel=1,
-        snapshot_mode='last',
-        seed=1
-    )
+    if options.ec2:
+        for i in range(options.n):
+            aws_config = get_aws_config(i)
+            run_experiment_lite(
+                algo.train(),
+                exp_prefix='%s-mf-trpo' % options.env_name,
+                n_parallel=1,
+                snapshot_mode='last',
+                mode='ec2',
+                aws_config=aws_config,
+                seed=i
+            )
+    else:
+        run_experiment_lite(
+            algo.train(),
+            exp_prefix='%s-mf-trpo' % options.env_name,
+            n_parallel=1,
+            snapshot_mode='last',
+            seed=1
+        )
