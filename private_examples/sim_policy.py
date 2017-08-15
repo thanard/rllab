@@ -120,7 +120,7 @@ if __name__ == "__main__":
                 print(path['observations'])
                 print(path['actions'])
                 print(path['rewards'])
-                print(np.sum(path['rewards']))
+                print('cost: ', -np.sum(path['rewards']))
                 is_plot = False
                 is_plot = plot_2D_path(path['observations'], env)
                 if args.no_query:

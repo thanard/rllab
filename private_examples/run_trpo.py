@@ -67,6 +67,14 @@ def get_algo(env_name,
         kwargs["initialized_path"]=init_path
     return TRPO(**kwargs)
 
+def train(*_):
+    algo = get_algo(options.env_name,
+                    options.use_eval,
+                    options.policy_init_path,
+                    options.horizon,
+                    options.batch_size)
+    algo.train()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='run trpo locally options')
     parser.add_argument('--env_name')
@@ -78,17 +86,11 @@ if __name__ == "__main__":
     parser.add_argument('--n', type=int, default=1)
     options = parser.parse_args()
     from sandbox.thanard.bootstrapping.run_model_based_rl import get_aws_config
-    stub(globals())
-    algo = get_algo(options.env_name,
-                    options.use_eval,
-                    options.policy_init_path,
-                    options.horizon,
-                    options.batch_size)
     if options.ec2:
         for i in range(options.n):
             aws_config = get_aws_config(i)
             run_experiment_lite(
-                algo.train(),
+                train,
                 exp_prefix='%s-mf-trpo' % options.env_name,
                 n_parallel=1,
                 snapshot_mode='last',
@@ -96,9 +98,10 @@ if __name__ == "__main__":
                 aws_config=aws_config,
                 seed=i
             )
+            print(i)
     else:
         run_experiment_lite(
-            algo.train(),
+            train,
             exp_prefix='%s-mf-trpo' % options.env_name,
             n_parallel=1,
             snapshot_mode='last',

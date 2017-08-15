@@ -58,7 +58,7 @@ def plot(folder_path):
     subprocess.check_call(command)
 
 @cli.command()
-@click.argument('path')
+@click.argument('path', nargs=-1)
 @click.option('--port', '-p', default='5000')
 def viskit(path, port):
     """ Plot multiple runs using viskit """
@@ -66,7 +66,7 @@ def viskit(path, port):
     command = [
         "python",
         os.path.join(config.PROJECT_PATH, script),
-        path,
+        *path,
         "--port",
         port
     ]
@@ -128,7 +128,8 @@ def trpo(env, use_eval, policy_init_path, horizon, batch_size, ec2, num_exps):
 @cli.command()
 @click.argument('params_path')
 @click.option('--horizon', '-h', type=str, default="100")
-def sim(params_path, horizon):
+@click.option('--action_noise', '-a', type=str, default="0.0")
+def sim(params_path, horizon, action_noise):
     """ Sim policy """
     script = "private_examples/sim_policy.py"
     command = [
@@ -136,7 +137,9 @@ def sim(params_path, horizon):
         os.path.join(config.PROJECT_PATH, script),
         params_path,
         "--horizon",
-        horizon
+        horizon,
+        "--action_noise",
+        action_noise
     ]
     subprocess.check_call(command)
 
