@@ -22,6 +22,11 @@ from private_examples.com_swimmer_env import SwimmerEnv
 from private_examples.com_snake_env import SnakeEnv
 from private_examples.reacher_env import ReacherEnv, gym_to_local
 from private_examples.com_half_cheetah_env import HalfCheetahEnv
+from private_examples.com_hopper_env import HopperEnv
+from private_examples.com_walker_env import WalkerEnv
+from private_examples.com_ant_env import AntEnv
+from private_examples.com_simple_humanoid_env import SimpleHumanoidEnv
+
 def get_env(env_name):
     if env_name == 'reacher':
         env = TfEnv(GymEnv("Reacher-v1", record_video=False, record_log=False))
@@ -34,6 +39,17 @@ def get_env(env_name):
         return TfEnv(normalize(SwimmerEnv()))
     elif env_name == 'half_cheetah':
         return TfEnv(normalize(HalfCheetahEnv()))
+    elif env_name == 'hopper':
+        return TfEnv(normalize(HopperEnv()))
+    elif env_name == 'walker':
+        return TfEnv(GymEnv('Walker2d-v1',
+                            record_video=False,
+                            record_log=False))
+        # return TfEnv(normalize(WalkerEnv()))
+    elif env_name == 'ant':
+        return TfEnv(normalize(AntEnv()))
+    elif env_name == 'simple_humanoid':
+        return TfEnv(normalize(SimpleHumanoidEnv()))
     else:
         assert False, "Define the env from env_name."
 
@@ -88,7 +104,7 @@ if __name__ == "__main__":
     from sandbox.thanard.bootstrapping.run_model_based_rl import get_aws_config
     if options.ec2:
         for i in range(options.n):
-            aws_config = get_aws_config(i)
+            aws_config = get_aws_config(i, use_gpu=False)
             run_experiment_lite(
                 train,
                 exp_prefix='%s-mf-trpo' % options.env_name,
