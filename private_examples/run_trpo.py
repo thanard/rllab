@@ -47,7 +47,18 @@ def get_env(env_name):
                             record_log=False))
         # return TfEnv(normalize(WalkerEnv()))
     elif env_name == 'ant':
+        # return TfEnv(GymEnv('Ant-v1',
+        #                     record_video=False,
+        #                     record_log=False))
         return TfEnv(normalize(AntEnv()))
+    elif env_name == 'humanoidstandup':
+        return TfEnv(GymEnv('HumanoidStandup-v1',
+                            record_video=False,
+                            record_log=False))
+    elif env_name == 'humanoid':
+        return TfEnv(GymEnv('Humanoid-v1',
+                            record_video=False,
+                            record_log=False))
     elif env_name == 'simple_humanoid':
         return TfEnv(normalize(SimpleHumanoidEnv()))
     else:
@@ -57,7 +68,8 @@ def get_algo(env_name,
              use_eval,
              init_path,
              horizon,
-             batch_size):
+             batch_size,
+             n_itr):
     env = get_env(env_name)
     policy = GaussianMLPPolicy(
         name='policy',
@@ -72,7 +84,7 @@ def get_algo(env_name,
         baseline=baseline,
         batch_size=batch_size,
         max_path_length=horizon,
-        n_itr=1000,
+        n_itr=n_itr,
         discount=1.00,
         step_size=0.01,
     )
@@ -88,7 +100,8 @@ def train(*_):
                     options.use_eval,
                     options.policy_init_path,
                     options.horizon,
-                    options.batch_size)
+                    options.batch_size,
+                    options.niters)
     algo.train()
 
 if __name__ == "__main__":
@@ -98,12 +111,13 @@ if __name__ == "__main__":
     parser.add_argument('--policy_init_path', default=None)
     parser.add_argument('--horizon', type=int)
     parser.add_argument('--batch_size', type=int, default=4000)
+    parser.add_argument('--niters', type=int, default=1000)
     parser.add_argument('-ec2', action="store_true", default=False)
-    parser.add_argument('--n', type=int, default=1)
+    parser.add_argument('--nexps', type=int, default=1)
     options = parser.parse_args()
     from sandbox.thanard.bootstrapping.run_model_based_rl import get_aws_config
     if options.ec2:
-        for i in range(options.n):
+        for i in range(options.nexps):
             aws_config = get_aws_config(i, use_gpu=False)
             run_experiment_lite(
                 train,
@@ -112,6 +126,7 @@ if __name__ == "__main__":
                 snapshot_mode='last',
                 mode='ec2',
                 aws_config=aws_config,
+                variant=vars(options),
                 seed=i
             )
             print(i)
@@ -121,5 +136,6 @@ if __name__ == "__main__":
             exp_prefix='%s-mf-trpo' % options.env_name,
             n_parallel=1,
             snapshot_mode='last',
+            variant=vars(options),
             seed=1
         )

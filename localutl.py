@@ -104,7 +104,15 @@ def run(algo, env, ec2, prefix, n_seeds):
 @click.option('--batch_size', '-n', type=str, default="4000")
 @click.option('--ec2', '-ec2', is_flag=True)
 @click.option('--num_exps', '-ne', type=str, default="1")
-def trpo(env, use_eval, policy_init_path, horizon, batch_size, ec2, num_exps):
+@click.option('--num_iters', '-ni', type=str, default="1000")
+def trpo(env,
+         use_eval,
+         policy_init_path,
+         horizon,
+         batch_size,
+         ec2,
+         num_exps,
+         num_iters):
     """ Run TRPO """
     script = "private_examples/run_trpo.py"
     command = [
@@ -115,14 +123,16 @@ def trpo(env, use_eval, policy_init_path, horizon, batch_size, ec2, num_exps):
         "--horizon",
         horizon,
         "--batch_size",
-        batch_size
+        batch_size,
+        "--niters",
+        num_iters
     ]
     if policy_init_path is not None:
         command.extend(["--policy_init_path", policy_init_path])
     if use_eval:
         command.append("-use_eval")
     if ec2:
-        command.extend(["-ec2", "--n", num_exps])
+        command.extend(["-ec2", "--nexps", num_exps])
     subprocess.check_call(command)
 
 @cli.command()
