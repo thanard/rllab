@@ -67,11 +67,11 @@ class AntEnv(MujocoEnv, Serializable):
         logger.record_tabular('MinForwardProgress', np.min(progs))
         logger.record_tabular('StdForwardProgress', np.std(progs))
 
-    def cost_tf(self, x, u, x_next):
+    def cost_tf(self, x, u, x_next, dones):
         vel = x_next[:, 15]
-        return -tf.reduce_mean(vel -
+        return -tf.reduce_mean((vel -
                                1e-2 * 0.5 * tf.reduce_sum(tf.square(u), axis=1) +
-                               0.05
+                               0.05) * (1-dones)
                                )
 
     def cost_np_vec(self, x, u, x_next):
@@ -89,7 +89,7 @@ class AntEnv(MujocoEnv, Serializable):
         '''
         :param x: vector of obs
         :param x_next: vector of next obs
-        :return:
+        :return: boolean array
         '''
         notdone = np.logical_and(
             np.logical_and(
@@ -99,3 +99,18 @@ class AntEnv(MujocoEnv, Serializable):
             np.amin(np.isfinite(x_next), axis=1)
         )
         return np.invert(notdone)
+
+    def is_done_tf(self, x, x_next):
+        '''
+        :param x:
+        :param x_next:
+        :return: float array 1.0 = True, 0.0 = False
+        '''
+        notdone = tf.logical_and(
+            tf.logical_and(
+                x_next[:, 2] >= 0.2,
+                x_next[:, 2] <= 1.0
+            ),
+            tf.reduce_all(tf.is_finite(x_next), axis=1)
+        )
+        return tf.cast(tf.logical_not(notdone), tf.float32)

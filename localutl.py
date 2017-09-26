@@ -74,30 +74,65 @@ def viskit(path, port):
 
 @cli.command()
 @click.argument('algo')
-@click.argument('env')
+@click.argument('envs', nargs=-1)
 @click.option('-ec2', is_flag=True)
 @click.option('-prefix', default=None)
 @click.option('--n_seeds', '-n', default='10')
-def run(algo, env, ec2, prefix, n_seeds):
+@click.option('--replace', '-r', default=None,
+              help='String in json format to replace parameters in params.json.'
+                   ' This applies to all envs.')
+def run(algo, envs, ec2, prefix, n_seeds, replace):
     """ Run MB algo """
     script = "sandbox/thanard/bootstrapping/run_model_based_rl.py"
+    for env in envs:
+        command = [
+            "python",
+            os.path.join(config.PROJECT_PATH, script),
+            algo,
+            "-env",
+            env,
+            "-n",
+            n_seeds
+        ]
+        if ec2:
+            command.append("-ec2")
+        if prefix is not None:
+            tmp_prefix = prefix
+            if len(envs)>1:
+                tmp_prefix += '/%s' % env
+            command.extend(["-prefix", tmp_prefix])
+        if replace is not None:
+            command.extend(["-replace", replace])
+        subprocess.check_call(command)
+
+@cli.command()
+@click.argument('download_path')
+@click.option('--all', is_flag=True)
+@click.option('--bare', is_flag=True)
+@click.option('--eff', is_flag=True)
+@click.option('--model', is_flag=True)
+def sync(download_path, all, bare, eff, model):
+    sync_name_idx = download_path.find("s3/")
+    assert sync_name_idx != -1
+    sync_name = download_path[sync_name_idx+3:]
+    script = "scripts/sync_s3.py"
     command = [
         "python",
         os.path.join(config.PROJECT_PATH, script),
-        algo,
-        "-env",
-        env,
-        "-n",
-        n_seeds
+        sync_name,
     ]
-    if ec2:
-        command.append("-ec2")
-    if prefix is not None:
-        command.extend(["-prefix", prefix])
+    if all:
+        command.append("--all")
+    if bare:
+        command.append("--bare")
+    if eff:
+        command.append("--eff")
+    if model:
+        command.append("--model")
     subprocess.check_call(command)
 
 @cli.command()
-@click.argument('env')
+@click.argument('envs', nargs=-1)
 @click.option('--use_eval', '-ue', is_flag=True)
 @click.option('--policy_init_path', '-ip', default=None)
 @click.option('--horizon', '-h', type=str, default="100")
@@ -105,7 +140,7 @@ def run(algo, env, ec2, prefix, n_seeds):
 @click.option('--ec2', '-ec2', is_flag=True)
 @click.option('--num_exps', '-ne', type=str, default="1")
 @click.option('--num_iters', '-ni', type=str, default="1000")
-def trpo(env,
+def trpo(envs,
          use_eval,
          policy_init_path,
          horizon,
@@ -115,25 +150,28 @@ def trpo(env,
          num_iters):
     """ Run TRPO """
     script = "private_examples/run_trpo.py"
-    command = [
-        "python",
-        os.path.join(config.PROJECT_PATH, script),
-        "--env_name",
-        env,
-        "--horizon",
-        horizon,
-        "--batch_size",
-        batch_size,
-        "--niters",
-        num_iters
-    ]
-    if policy_init_path is not None:
-        command.extend(["--policy_init_path", policy_init_path])
-    if use_eval:
-        command.append("-use_eval")
-    if ec2:
-        command.extend(["-ec2", "--nexps", num_exps])
-    subprocess.check_call(command)
+    for env in envs:
+        command = [
+            "python",
+            os.path.join(config.PROJECT_PATH, script),
+            "--env_name",
+            env,
+            "--horizon",
+            horizon,
+            "--batch_size",
+            batch_size,
+            "--niters",
+            num_iters
+        ]
+        if policy_init_path is not None:
+            command.extend(["--policy_init_path", policy_init_path])
+        if use_eval:
+            command.append("-use_eval")
+        if ec2:
+            command.extend(["-ec2", "--nexps", num_exps])
+        if len(envs) > 1:
+            command.extend(["--prefix", "all-envs"])
+        subprocess.check_call(command)
 
 @cli.command()
 @click.argument('params_path')

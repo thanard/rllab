@@ -114,14 +114,19 @@ if __name__ == "__main__":
     parser.add_argument('--niters', type=int, default=1000)
     parser.add_argument('-ec2', action="store_true", default=False)
     parser.add_argument('--nexps', type=int, default=1)
+    parser.add_argument('--prefix', type=str, default=None)
     options = parser.parse_args()
     from sandbox.thanard.bootstrapping.run_model_based_rl import get_aws_config
+    if options.prefix is None:
+        prefix = '%s-mf-trpo' % options.env_name
+    else:
+        prefix = '%s-mf-trpo/%s' % (options.prefix, options.env_name)
     if options.ec2:
         for i in range(options.nexps):
             aws_config = get_aws_config(i, use_gpu=False)
             run_experiment_lite(
                 train,
-                exp_prefix='%s-mf-trpo' % options.env_name,
+                exp_prefix=prefix,
                 n_parallel=1,
                 snapshot_mode='last',
                 mode='ec2',
@@ -133,7 +138,7 @@ if __name__ == "__main__":
     else:
         run_experiment_lite(
             train,
-            exp_prefix='%s-mf-trpo' % options.env_name,
+            exp_prefix=prefix,
             n_parallel=1,
             snapshot_mode='last',
             variant=vars(options),
