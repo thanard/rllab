@@ -36,7 +36,7 @@ class VectorizedSampler(BaseSampler):
     def shutdown_worker(self):
         self.vec_env.terminate()
 
-    def obtain_samples(self, itr):
+    def obtain_samples(self, itr, determ=False):
         # logger.log("Obtaining samples for iteration %d..." % itr)
         paths = []
         n_samples = 0
@@ -55,6 +55,8 @@ class VectorizedSampler(BaseSampler):
             t = time.time()
             policy.reset(dones)
             actions, agent_infos = policy.get_actions(obses)
+            if determ:
+                actions = agent_infos['mean']
 
             policy_time += time.time() - t
             t = time.time()

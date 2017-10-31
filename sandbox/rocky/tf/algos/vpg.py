@@ -105,7 +105,7 @@ class VPG(BatchPolopt, Serializable):
 
     @overrides
     def optimize_policy(self, itr, samples_data):
-        logger.log("optimizing policy")
+        # logger.log("optimizing policy")
         inputs = ext.extract(
             samples_data,
             "observations", "actions", "advantages"
@@ -115,16 +115,16 @@ class VPG(BatchPolopt, Serializable):
         inputs += tuple(state_info_list)
         if self.policy.recurrent:
             inputs += (samples_data["valids"],)
-        dist_info_list = [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
-        loss_before = self.optimizer.loss(inputs)
+        # dist_info_list = [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
+        # loss_before = self.optimizer.loss(inputs)
         self.optimizer.optimize(inputs)
-        loss_after = self.optimizer.loss(inputs)
-        logger.record_tabular("LossBefore", loss_before)
-        logger.record_tabular("LossAfter", loss_after)
+        # loss_after = self.optimizer.loss(inputs)
+        # logger.record_tabular("LossBefore", loss_before)
+        # logger.record_tabular("LossAfter", loss_after)
 
-        mean_kl, max_kl = self.opt_info['f_kl'](*(list(inputs) + dist_info_list))
-        logger.record_tabular('MeanKL', mean_kl)
-        logger.record_tabular('MaxKL', max_kl)
+        # mean_kl, max_kl = self.opt_info['f_kl'](*(list(inputs) + dist_info_list))
+        # logger.record_tabular('MeanKL', mean_kl)
+        # logger.record_tabular('MaxKL', max_kl)
 
     @overrides
     def get_itr_snapshot(self, itr, samples_data):

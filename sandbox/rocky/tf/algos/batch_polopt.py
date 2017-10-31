@@ -107,8 +107,8 @@ class BatchPolopt(RLAlgorithm):
     def shutdown_worker(self):
         self.sampler.shutdown_worker()
 
-    def obtain_samples(self, itr):
-        return self.sampler.obtain_samples(itr)
+    def obtain_samples(self, itr, determ=False):
+        return self.sampler.obtain_samples(itr, determ)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
@@ -192,6 +192,7 @@ class BatchPolopt(RLAlgorithm):
                     logger.record_tabular('Time', time.time() - start_time)
                     logger.record_tabular('ItrTime', time.time() - itr_start_time)
                     if 'horizon' in self.kwargs:
+                        # paths = self.obtain_samples(itr, True)
                         avg_cost = self.evaluate_fixed_init_trajectories(
                             self.reset_initial_states,
                             self.kwargs['horizon'])

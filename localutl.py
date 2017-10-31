@@ -76,12 +76,13 @@ def viskit(path, port):
 @click.argument('algo')
 @click.argument('envs', nargs=-1)
 @click.option('-ec2', is_flag=True)
+@click.option('-f', is_flag=True, help='force')
 @click.option('-prefix', default=None)
 @click.option('--n_seeds', '-n', default='10')
 @click.option('--replace', '-r', default=None,
               help='String in json format to replace parameters in params.json.'
                    ' This applies to all envs.')
-def run(algo, envs, ec2, prefix, n_seeds, replace):
+def run(algo, envs, ec2, prefix, n_seeds, replace, f):
     """ Run MB algo """
     script = "sandbox/thanard/bootstrapping/run_model_based_rl.py"
     for env in envs:
@@ -96,6 +97,8 @@ def run(algo, envs, ec2, prefix, n_seeds, replace):
         ]
         if ec2:
             command.append("-ec2")
+        if f:
+            command.append("-f")
         if prefix is not None:
             tmp_prefix = prefix
             if len(envs)>1:

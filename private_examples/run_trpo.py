@@ -26,6 +26,7 @@ from private_examples.com_hopper_env import HopperEnv
 from private_examples.com_walker_env import WalkerEnv
 from private_examples.com_ant_env import AntEnv
 from private_examples.com_simple_humanoid_env import SimpleHumanoidEnv
+from private_examples.com_humanoid_env import HumanoidEnv
 
 def get_env(env_name):
     if env_name == 'reacher':
@@ -42,10 +43,10 @@ def get_env(env_name):
     elif env_name == 'hopper':
         return TfEnv(normalize(HopperEnv()))
     elif env_name == 'walker':
-        return TfEnv(GymEnv('Walker2d-v1',
-                            record_video=False,
-                            record_log=False))
-        # return TfEnv(normalize(WalkerEnv()))
+        # return TfEnv(GymEnv('Walker2d-v1',
+        #                     record_video=False,
+        #                     record_log=False))
+        return TfEnv(normalize(WalkerEnv()))
     elif env_name == 'ant':
         # return TfEnv(GymEnv('Ant-v1',
         #                     record_video=False,
@@ -56,9 +57,10 @@ def get_env(env_name):
                             record_video=False,
                             record_log=False))
     elif env_name == 'humanoid':
-        return TfEnv(GymEnv('Humanoid-v1',
-                            record_video=False,
-                            record_log=False))
+        # return TfEnv(GymEnv('Humanoid-v1',
+        #                     record_video=False,
+        #                     record_log=False))
+        return TfEnv(normalize(HumanoidEnv()))
     elif env_name == 'simple_humanoid':
         return TfEnv(normalize(SimpleHumanoidEnv()))
     else:

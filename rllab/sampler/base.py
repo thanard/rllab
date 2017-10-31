@@ -14,7 +14,7 @@ class Sampler(object):
         """
         raise NotImplementedError
 
-    def obtain_samples(self, itr):
+    def obtain_samples(self, itr, determ=False):
         """
         Collect samples for the given iteration number.
         :param itr: Iteration number.

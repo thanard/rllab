@@ -17,6 +17,9 @@ def sync(folder, local_dir, remote_dir):
             local_dir = os.path.join(local_dir, folder)
         # If exist it returns 0
         if not os.system('aws s3 ls {remote_dir}'.format(remote_dir=remote_dir)):
+            command = ("""
+                aws s3 cp {remote_dir} {local_dir}
+            """.format(local_dir=local_dir, remote_dir=remote_dir))
             if args.bare:
                 command = ("""
                     aws s3 sync {remote_dir} {local_dir} --exclude '*' --include '*.csv' --include '*.json' --content-type "UTF-8"
@@ -47,6 +50,7 @@ def sync(folder, local_dir, remote_dir):
             if args.dry:
                 print(command)
             else:
+                print(command)
                 os.system(command)
 
 if __name__ == "__main__":
