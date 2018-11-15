@@ -1,7 +1,7 @@
 name: rllab3
 channels:
     - https://conda.anaconda.org/kne 
-    - https://conda.binstar.org/tlatorre 
+    - https://conda.anaconda.org/tlatorre 
     - https://conda.anaconda.org/cjs14
     - https://conda.anaconda.org/menpo
     - jjhelmus
@@ -26,6 +26,7 @@ dependencies:
     - pytorch==0.1.9
     - torchvision==0.1.6
     - mpi4py
+    - pandas
     - pip:
         - Pillow
         - atari-py
@@ -37,7 +38,7 @@ dependencies:
         - pyzmq
         - tqdm
         - msgpack-python
-        - mujoco_py
+        - git+https://github.com/inksci/mujoco-py-v0.5.7.git
         - cached_property
         - line_profiler
         - cloudpickle
@@ -59,3 +60,5 @@ dependencies:
         - numpy-stl==2.2.0
         - nibabel==2.1.0
         - pylru==1.0.9
+        - hyperopt
+        - polling
