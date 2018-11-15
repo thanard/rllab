@@ -71,7 +71,10 @@ def get_algo(env_name,
              init_path,
              horizon,
              batch_size,
-             n_itr):
+             n_itr,
+             discount,
+             step_size,
+             gae):
     env = get_env(env_name)
     policy = GaussianMLPPolicy(
         name='policy',
@@ -87,8 +90,9 @@ def get_algo(env_name,
         batch_size=batch_size,
         max_path_length=horizon,
         n_itr=n_itr,
-        discount=1.00,
-        step_size=0.01,
+        discount=discount,
+        step_size=step_size,
+        gae_lambda=gae
     )
     if use_eval:
         kwargs["reset_init_path"] = os.path.join(config.PROJECT_PATH, get_eval_data_path[env_name])
@@ -103,7 +107,10 @@ def train(*_):
                     options.policy_init_path,
                     options.horizon,
                     options.batch_size,
-                    options.niters)
+                    options.niters,
+                    options.discount,
+                    options.kl,
+                    options.gae)
     algo.train()
 
 if __name__ == "__main__":
@@ -117,6 +124,9 @@ if __name__ == "__main__":
     parser.add_argument('-ec2', action="store_true", default=False)
     parser.add_argument('--nexps', type=int, default=1)
     parser.add_argument('--prefix', type=str, default=None)
+    parser.add_argument('--discount', type=float, default=1.00)
+    parser.add_argument('--kl', type=float, default=0.05)
+    parser.add_argument('--gae', type=float, default=1.00)
     options = parser.parse_args()
     from sandbox.thanard.bootstrapping.run_model_based_rl import get_aws_config
     if options.prefix is None:
@@ -134,6 +144,7 @@ if __name__ == "__main__":
                 mode='ec2',
                 aws_config=aws_config,
                 variant=vars(options),
+                exp_name='%s_seed_%d' % (options.env_name, i),
                 seed=i
             )
             print(i)

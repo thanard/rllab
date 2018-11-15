@@ -44,6 +44,7 @@ class HalfCheetahEnv(MujocoEnv, Serializable):
         run_cost = -1 * self.get_body_comvel("torso")[0]
         cost = ctrl_cost + run_cost
         reward = -cost
+        reward = np.clip(reward, -10, 10)
         done = False
         return Step(next_obs, reward, done)
 
@@ -61,13 +62,14 @@ class HalfCheetahEnv(MujocoEnv, Serializable):
 
     def cost_np(self, x, u, x_next):
         assert np.amax(np.abs(u)) <= 1.0
-        return -np.mean(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * np.sum(np.square(u), axis=1))
-
+        # return -np.mean(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * np.sum(np.square(u), axis=1))
+        return -np.mean(np.clip(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * np.sum(np.square(u), axis=1), -10, 10))
 
     def cost_tf(self, x, u, x_next):
-        return -tf.reduce_mean(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * tf.reduce_sum(tf.square(u), axis=1))
-
+        # return -tf.reduce_mean(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * tf.reduce_sum(tf.square(u), axis=1))
+        return -tf.reduce_mean(tf.clip_by_value(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * tf.reduce_sum(tf.square(u), axis=1), -10, 10))
 
     def cost_np_vec(self, x, u, x_next):
         assert np.amax(np.abs(u)) <= 1.0
-        return -(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * np.sum(np.square(u), axis=1))
+        # return -(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * np.sum(np.square(u), axis=1))
+        return -np.clip(x_next[:, 9] - self.ctrl_cost_coeff * 0.5 * np.sum(np.square(u), axis=1), -10, 10)

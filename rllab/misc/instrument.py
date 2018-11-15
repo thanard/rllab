@@ -1005,6 +1005,8 @@ def launch_ec2(params_list, exp_prefix, docker_image, code_full_path,
         import pprint
         pprint.pprint(spot_args)
         if not dry:
+            import ipdb
+            ipdb.set_trace()
             response = ec2.request_spot_instances(**spot_args)
             print(response)
             spot_request_id = response['SpotInstanceRequests'][

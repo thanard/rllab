@@ -82,7 +82,8 @@ def viskit(path, port):
 @click.option('--replace', '-r', default=None,
               help='String in json format to replace parameters in params.json.'
                    ' This applies to all envs.')
-def run(algo, envs, ec2, prefix, n_seeds, replace, f):
+@click.option('--seed', default='0')
+def run(algo, envs, ec2, prefix, n_seeds, replace, f, seed):
     """ Run MB algo """
     script = "sandbox/thanard/bootstrapping/run_model_based_rl.py"
     for env in envs:
@@ -93,7 +94,9 @@ def run(algo, envs, ec2, prefix, n_seeds, replace, f):
             "-env",
             env,
             "-n",
-            n_seeds
+            n_seeds,
+            '-seed',
+            seed
         ]
         if ec2:
             command.append("-ec2")
@@ -143,6 +146,9 @@ def sync(download_path, all, bare, eff, model):
 @click.option('--ec2', '-ec2', is_flag=True)
 @click.option('--num_exps', '-ne', type=str, default="1")
 @click.option('--num_iters', '-ni', type=str, default="1000")
+@click.option('--discount', '-dis', type=str, default="1.00")
+@click.option('--kl', type=str, default="0.05")
+@click.option('--gae', type=str, default="1.00")
 def trpo(envs,
          use_eval,
          policy_init_path,
@@ -150,7 +156,10 @@ def trpo(envs,
          batch_size,
          ec2,
          num_exps,
-         num_iters):
+         num_iters,
+         discount,
+         kl,
+         gae):
     """ Run TRPO """
     script = "private_examples/run_trpo.py"
     for env in envs:
@@ -164,7 +173,13 @@ def trpo(envs,
             "--batch_size",
             batch_size,
             "--niters",
-            num_iters
+            num_iters,
+            "--discount",
+            discount,
+            "--kl",
+            kl,
+            "--gae",
+            gae
         ]
         if policy_init_path is not None:
             command.extend(["--policy_init_path", policy_init_path])

@@ -31,7 +31,8 @@ class VecEnvExecutor(object):
         results = [env.reset() for env in self.envs]
         self.ts[:] = 0
         return results
-
+    def set_init_sampler(self, init_sampler):
+        self.init_sampler = init_sampler
     @property
     def num_envs(self):
         return len(self.envs)

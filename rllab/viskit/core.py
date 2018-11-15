@@ -104,6 +104,7 @@ def load_exps_data(exp_folder_paths,disable_variant=False):
             params_json_path = os.path.join(exp_path, "params.json")
             variant_json_path = os.path.join(exp_path, "variant.json")
             progress_csv_path = os.path.join(exp_path, "progress.csv")
+            # progress_csv_path = os.path.join(exp_path, "log.csv")
             progress = load_progress(progress_csv_path)
             if disable_variant:
                 params = load_params(params_json_path)

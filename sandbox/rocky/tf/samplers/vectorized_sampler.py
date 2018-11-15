@@ -17,6 +17,9 @@ class VectorizedSampler(BaseSampler):
         super(VectorizedSampler, self).__init__(algo)
         self.n_envs = n_envs
 
+    def set_init_sampler(self, init_sampler):
+        self.vec_env.vec_env.set_init_sampler(init_sampler)
+
     def start_worker(self):
         n_envs = self.n_envs
         if n_envs is None:
@@ -24,7 +27,10 @@ class VectorizedSampler(BaseSampler):
             n_envs = max(1, min(n_envs, 100))
 
         if getattr(self.algo.env, 'vectorized', False):
-            self.vec_env = self.algo.env.vec_env_executor(n_envs=n_envs, max_path_length=self.algo.max_path_length)
+            self.vec_env = self.algo.env.vec_env_executor(
+                n_envs=n_envs,
+                max_path_length=self.algo.max_path_length
+            )
         else:
             envs = [pickle.loads(pickle.dumps(self.algo.env)) for _ in range(n_envs)]
             self.vec_env = VecEnvExecutor(

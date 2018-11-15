@@ -87,6 +87,12 @@ def plot_2D_path(traj, env):
     plt.scatter(traj[:, 0], traj[:, 1], alpha=0.2, c='r', s=100, zorder=2)
     return True
 
+def get_discount_cost(costs, gamma):
+    total_cost = 0.0
+    for cost in reversed(costs):
+        total_cost = cost + gamma*total_cost
+    return total_cost
+
 import os.path
 if __name__ == "__main__":
 
@@ -121,6 +127,7 @@ if __name__ == "__main__":
                 print(path['actions'])
                 print(path['rewards'])
                 print('cost: ', -np.sum(path['rewards']))
+                print('discounted_cost: ', get_discount_cost(-path['rewards'], 0.99))
                 is_plot = False
                 is_plot = plot_2D_path(path['observations'], env)
                 if args.no_query:
